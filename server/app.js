@@ -19,6 +19,19 @@ if (isProduction) {
 
 app.use(express.json());
 
+// This app's API responses reflect live, frequently-changing FileMaker data.
+// Express auto-generates an ETag for every res.json() by default and will
+// silently answer matching conditional requests with a bodyless 304 - fine
+// for static assets, actively wrong here, since two genuinely different
+// server states (e.g. before/after a bugfix, or "no appointments" now vs.
+// "some appointments" later) can hash to an identical or previously-cached
+// ETag and leave the browser trusting stale data. Disable it API-wide.
+app.set('etag', false);
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'dev-only-secret-change-me',
