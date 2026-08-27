@@ -21,16 +21,28 @@ function authHeader() {
   return `Basic ${token}`;
 }
 
-// FileMaker OData primary keys used here (kp_ScheduleID, "Intake ID", ClientID) are
-// text/serial fields in this schema; quote-and-escape as an OData string literal.
-// Single quotes inside the value are doubled per OData string-literal escaping rules.
-function keyLiteral(id) {
-  return `'${String(id).replace(/'/g, "''")}'`;
-}
-
-// OData string literal for use inside $filter (same escaping as keyLiteral).
+// OData string literal for use inside $filter (single quotes inside the value
+// are doubled per OData string-literal escaping rules).
 function stringLiteral(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+// Single-record addressing. FileMaker Server's OData implementation matches
+// the shorthand EntitySet('value') form against its own internal numeric
+// record ID, not against whichever field your schema calls its primary key -
+// using that shorthand against a text-keyed table throws "incompatible data
+// types" (error 8309). The explicit named-key form EntitySet(Field='value')
+// forces the match onto the field we actually mean.
+function keyPredicate(keyField, value) {
+  return `${encodeURIComponent(keyField)}=${stringLiteral(value)}`;
+}
+
+// OData Edm.Date literal for use inside $filter - unquoted 'YYYY-MM-DD', per
+// spec. FileMaker's Event_Start_Date/Event_End_Date are real Date-typed
+// fields, and comparing them against a quoted string literal (which is what
+// this used to send) doesn't error, it just silently matches nothing.
+function dateLiteral(value) {
+  return String(value);
 }
 
 // URLSearchParams.toString() encodes spaces as '+' (the
@@ -104,8 +116,8 @@ function fromAppointment(data) {
 class ODataAdapter extends CalendarAdapter {
   async listAppointments({ startDate, endDate }) {
     const filter =
-      `Event_Start_Date le ${stringLiteral(endDate)} and ` +
-      `(Event_End_Date ge ${stringLiteral(startDate)} or (Event_End_Date eq null and Event_Start_Date ge ${stringLiteral(startDate)}))`;
+      `Event_Start_Date le ${dateLiteral(endDate)} and ` +
+      `(Event_End_Date ge ${dateLiteral(startDate)} or (Event_End_Date eq null and Event_Start_Date ge ${dateLiteral(startDate)}))`;
     const qs = buildQuery({ $filter: filter, $orderby: 'Event_Start_Date' });
     const json = await odataFetch(`/${SCHEDULE}?${qs}`);
     return (json.value || []).map(toAppointment);
@@ -119,7 +131,7 @@ class ODataAdapter extends CalendarAdapter {
 
   async getAppointment(id) {
     try {
-      const row = await odataFetch(`/${SCHEDULE}(${keyLiteral(id)})`);
+      const row = await odataFetch(`/${SCHEDULE}(${keyPredicate('kp_ScheduleID', id)})`);
       return row ? toAppointment(row) : null;
     } catch (err) {
       if (/404/.test(err.message)) return null;
@@ -133,12 +145,15 @@ class ODataAdapter extends CalendarAdapter {
   }
 
   async updateAppointment(id, data) {
-    await odataFetch(`/${SCHEDULE}(${keyLiteral(id)})`, { method: 'PATCH', body: fromAppointment(data) });
+    await odataFetch(`/${SCHEDULE}(${keyPredicate('kp_ScheduleID', id)})`, {
+      method: 'PATCH',
+      body: fromAppointment(data),
+    });
     return this.getAppointment(id);
   }
 
   async deleteAppointment(id) {
-    await odataFetch(`/${SCHEDULE}(${keyLiteral(id)})`, { method: 'DELETE' });
+    await odataFetch(`/${SCHEDULE}(${keyPredicate('kp_ScheduleID', id)})`, { method: 'DELETE' });
   }
 
   async findClients(query) {
@@ -185,14 +200,14 @@ class ODataAdapter extends CalendarAdapter {
 
   async hydrateClientForAppointment(intakeId) {
     if (!intakeId) return null;
-    const intake = await odataFetch(`/${INTAKE}(${keyLiteral(intakeId)})`).catch((err) => {
+    const intake = await odataFetch(`/${INTAKE}(${keyPredicate('Intake ID', intakeId)})`).catch((err) => {
       if (/404/.test(err.message)) return null;
       throw err;
     });
     if (!intake) return null;
     const csId = intake['CS ID'];
     if (csId == null) return null;
-    const client = await odataFetch(`/${CLIENTS}(${keyLiteral(csId)})`).catch((err) => {
+    const client = await odataFetch(`/${CLIENTS}(${keyPredicate('ClientID', csId)})`).catch((err) => {
       if (/404/.test(err.message)) return null;
       throw err;
     });
