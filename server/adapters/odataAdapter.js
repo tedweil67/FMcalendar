@@ -45,14 +45,22 @@ function dateLiteral(value) {
   return String(value);
 }
 
-// URLSearchParams.toString() encodes spaces as '+' (the
-// application/x-www-form-urlencoded convention), but FileMaker Server's
-// OData endpoint rejects '+' in the query string as a syntax error - it
-// wants strict percent-encoding (%20) instead. Build query strings by hand
-// with encodeURIComponent to avoid that.
+// Two encoding bugs to avoid here, both learned the hard way against a live
+// FileMaker Server:
+// 1. URLSearchParams.toString() encodes spaces as '+' (the
+//    application/x-www-form-urlencoded convention), but FileMaker's OData
+//    endpoint rejects '+' in the query string as a syntax error - it wants
+//    strict percent-encoding (%20) instead.
+// 2. The system query option names ($filter, $orderby, $top, ...) must stay
+//    literal - encodeURIComponent would turn '$filter' into '%24filter',
+//    which FileMaker's OData parser doesn't recognize as $filter at all. It
+//    doesn't error on an unrecognized parameter, it just silently drops it
+//    and returns its default (unfiltered) result set - which is what was
+//    happening: every request "succeeded" but ignored our filter entirely.
+// So: percent-encode parameter VALUES only, never the $-prefixed keys.
 function buildQuery(params) {
   return Object.entries(params)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
     .join('&');
 }
 
