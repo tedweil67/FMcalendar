@@ -106,7 +106,9 @@ function toAppointment(row) {
     startTime: row.Event_Start_Time ? row.Event_Start_Time.slice(0, 5) : null,
     endDate: row.Event_End_Date || null,
     endTime: row.Event_End_Time ? row.Event_End_Time.slice(0, 5) : null,
-    untimed: !!row.All_Day_Event,
+    // All_Day_Event is Edm.String in this schema, not a boolean - FileMaker
+    // stores the literal text "All Day" when checked, "" when unchecked.
+    untimed: row.All_Day_Event === 'All Day',
     description: row.Event_Description || '',
     notes: row.Event_Notes || '',
     address: row.Address || '',
@@ -133,7 +135,10 @@ function fromAppointment(data) {
     Zip: data.zip || '',
     Phone: data.phone || '',
     Resources: data.resource || 'none',
-    All_Day_Event: !!data.untimed,
+    // Sending a JSON boolean here throws "Incompatible types in assignment"
+    // (error 8309) - FileMaker has no boolean type, and this field's
+    // convention is the literal text "All Day" / "" (see toAppointment above).
+    All_Day_Event: data.untimed ? 'All Day' : '',
     kf_Intake_ID: data.intakeId || null,
   };
 }
