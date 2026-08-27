@@ -6,6 +6,23 @@ let mainCalendar = null;
 let miniCalendar = null;
 let resourceConfig = { order: ['none'], colors: { none: '#ffffff' } };
 
+function showError(message) {
+  const banner = document.getElementById('error-banner');
+  if (!banner) return;
+  banner.textContent = '';
+  const text = document.createElement('span');
+  text.textContent = message;
+  const dismiss = document.createElement('button');
+  dismiss.type = 'button';
+  dismiss.textContent = '✕';
+  dismiss.addEventListener('click', () => {
+    banner.hidden = true;
+  });
+  banner.appendChild(text);
+  banner.appendChild(dismiss);
+  banner.hidden = false;
+}
+
 async function apiFetch(url, options) {
   const res = await fetch(url, {
     ...options,
@@ -14,6 +31,10 @@ async function apiFetch(url, options) {
   if (res.status === 401) {
     window.location.href = 'login.html';
     throw new Error('Not authenticated');
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Request to ${url} failed (${res.status})`);
   }
   return res;
 }
@@ -34,8 +55,14 @@ async function loadResourceConfig() {
 }
 
 async function loadUnscheduled() {
-  const res = await apiFetch('/api/appointments/unscheduled');
-  const items = await res.json();
+  let items;
+  try {
+    const res = await apiFetch('/api/appointments/unscheduled');
+    items = await res.json();
+  } catch (err) {
+    showError(`Couldn't load unscheduled appointments: ${err.message}`);
+    return;
+  }
   const list = document.getElementById('unscheduled-list');
   list.innerHTML = '';
   if (!items.length) {
@@ -95,6 +122,7 @@ function initMainCalendar() {
         );
         successCallback(await res.json());
       } catch (err) {
+        showError(`Couldn't load appointments: ${err.message}`);
         failureCallback(err);
       }
     },

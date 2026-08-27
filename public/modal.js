@@ -86,8 +86,14 @@
   async function openApptModal(id, prefill) {
     resetForm();
     if (id) {
-      const res = await apiFetch(`/api/appointments/${encodeURIComponent(id)}`);
-      const appt = await res.json();
+      let appt;
+      try {
+        const res = await apiFetch(`/api/appointments/${encodeURIComponent(id)}`);
+        appt = await res.json();
+      } catch (err) {
+        showError(`Couldn't load this appointment: ${err.message}`);
+        return;
+      }
       fillForm(appt);
     } else if (prefill) {
       if (prefill.date) {
@@ -126,13 +132,18 @@
   async function handleSubmit(e) {
     e.preventDefault();
     const data = collectFormData();
-    if (currentId) {
-      await apiFetch(`/api/appointments/${encodeURIComponent(currentId)}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
-    } else {
-      await apiFetch('/api/appointments', { method: 'POST', body: JSON.stringify(data) });
+    try {
+      if (currentId) {
+        await apiFetch(`/api/appointments/${encodeURIComponent(currentId)}`, {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        });
+      } else {
+        await apiFetch('/api/appointments', { method: 'POST', body: JSON.stringify(data) });
+      }
+    } catch (err) {
+      showError(`Couldn't save this appointment: ${err.message}`);
+      return;
     }
     closeApptModal();
     onSaved();
@@ -141,7 +152,12 @@
   async function handleDelete() {
     if (!currentId) return;
     if (!window.confirm('Delete this appointment? This cannot be undone.')) return;
-    await apiFetch(`/api/appointments/${encodeURIComponent(currentId)}`, { method: 'DELETE' });
+    try {
+      await apiFetch(`/api/appointments/${encodeURIComponent(currentId)}`, { method: 'DELETE' });
+    } catch (err) {
+      showError(`Couldn't delete this appointment: ${err.message}`);
+      return;
+    }
     closeApptModal();
     onSaved();
   }
@@ -173,8 +189,14 @@
   }
 
   async function searchClients(query) {
-    const res = await apiFetch(`/api/clients/search?q=${encodeURIComponent(query)}`);
-    const results = await res.json();
+    let results;
+    try {
+      const res = await apiFetch(`/api/clients/search?q=${encodeURIComponent(query)}`);
+      results = await res.json();
+    } catch (err) {
+      showError(`Couldn't search clients: ${err.message}`);
+      return;
+    }
     const container = $('client-results');
     container.innerHTML = '';
     if (!results.length) {

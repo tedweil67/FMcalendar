@@ -33,6 +33,17 @@ function stringLiteral(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
+// URLSearchParams.toString() encodes spaces as '+' (the
+// application/x-www-form-urlencoded convention), but FileMaker Server's
+// OData endpoint rejects '+' in the query string as a syntax error - it
+// wants strict percent-encoding (%20) instead. Build query strings by hand
+// with encodeURIComponent to avoid that.
+function buildQuery(params) {
+  return Object.entries(params)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
+}
+
 async function odataFetch(path, { method = 'GET', body } = {}) {
   const res = await fetch(`${baseUrl()}${path}`, {
     method,
@@ -95,14 +106,14 @@ class ODataAdapter extends CalendarAdapter {
     const filter =
       `Event_Start_Date le ${stringLiteral(endDate)} and ` +
       `(Event_End_Date ge ${stringLiteral(startDate)} or (Event_End_Date eq null and Event_Start_Date ge ${stringLiteral(startDate)}))`;
-    const qs = new URLSearchParams({ $filter: filter, $orderby: 'Event_Start_Date' });
-    const json = await odataFetch(`/${SCHEDULE}?${qs.toString()}`);
+    const qs = buildQuery({ $filter: filter, $orderby: 'Event_Start_Date' });
+    const json = await odataFetch(`/${SCHEDULE}?${qs}`);
     return (json.value || []).map(toAppointment);
   }
 
   async listUnscheduled() {
-    const qs = new URLSearchParams({ $filter: 'Event_Start_Date eq null' });
-    const json = await odataFetch(`/${SCHEDULE}?${qs.toString()}`);
+    const qs = buildQuery({ $filter: 'Event_Start_Date eq null' });
+    const json = await odataFetch(`/${SCHEDULE}?${qs}`);
     return (json.value || []).map(toAppointment);
   }
 
@@ -139,8 +150,8 @@ class ODataAdapter extends CalendarAdapter {
     // requests instead of one but avoids a class of bug we can't test for.
     const q = (query || '').trim().toLowerCase();
     const [clientsJson, intakeJson] = await Promise.all([
-      odataFetch(`/${CLIENTS}?${new URLSearchParams({ $top: '500' })}`),
-      odataFetch(`/${INTAKE}?${new URLSearchParams({ $top: '500' })}`),
+      odataFetch(`/${CLIENTS}?${buildQuery({ $top: '500' })}`),
+      odataFetch(`/${INTAKE}?${buildQuery({ $top: '500' })}`),
     ]);
     const clientById = new Map((clientsJson.value || []).map((c) => [String(c.ClientID), c]));
 
