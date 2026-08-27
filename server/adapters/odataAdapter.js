@@ -56,16 +56,33 @@ function buildQuery(params) {
     .join('&');
 }
 
+const REQUEST_TIMEOUT_MS = Number(process.env.FM_REQUEST_TIMEOUT_MS) || 20000;
+
 async function odataFetch(path, { method = 'GET', body } = {}) {
-  const res = await fetch(`${baseUrl()}${path}`, {
-    method,
-    headers: {
-      Authorization: authHeader(),
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(`${baseUrl()}${path}`, {
+      method,
+      headers: {
+        Authorization: authHeader(),
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(
+        `FileMaker OData ${method} ${path} timed out after ${REQUEST_TIMEOUT_MS}ms - the query may be scanning an unindexed field on a large table`
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`FileMaker OData ${method} ${path} failed: ${res.status} ${text}`);
@@ -115,12 +132,32 @@ function fromAppointment(data) {
 
 class ODataAdapter extends CalendarAdapter {
   async listAppointments({ startDate, endDate }) {
-    const filter =
-      `Event_Start_Date le ${dateLiteral(endDate)} and ` +
-      `(Event_End_Date ge ${dateLiteral(startDate)} or (Event_End_Date eq null and Event_Start_Date ge ${dateLiteral(startDate)}))`;
-    const qs = buildQuery({ $filter: filter, $orderby: 'Event_Start_Date' });
-    const json = await odataFetch(`/${SCHEDULE}?${qs}`);
-    return (json.value || []).map(toAppointment);
+    // A single compound filter (Event_Start_Date le X and (Event_End_Date ge Y
+    // or (Event_End_Date eq null and Event_Start_Date ge Y))) forces FileMaker
+    // to evaluate an OR across two different fields including a null check -
+    // on a 49k-row table that's a full scan even with indexes in place, slow
+    // enough to time out. Split into two simple AND-only, single-index-friendly
+    // queries and merge the results instead:
+    //   A. appointments that start within the visible window (the vast
+    //      majority, including legacy rows with a blank Event_End_Date)
+    //   B. multi-day appointments that started earlier but still overlap the
+    //      visible window (rare - only true multi-day spans hit this)
+    const queryA = buildQuery({
+      $filter: `Event_Start_Date ge ${dateLiteral(startDate)} and Event_Start_Date le ${dateLiteral(endDate)}`,
+      $orderby: 'Event_Start_Date',
+    });
+    const queryB = buildQuery({
+      $filter: `Event_Start_Date lt ${dateLiteral(startDate)} and Event_End_Date ge ${dateLiteral(startDate)}`,
+    });
+    const [jsonA, jsonB] = await Promise.all([
+      odataFetch(`/${SCHEDULE}?${queryA}`),
+      odataFetch(`/${SCHEDULE}?${queryB}`),
+    ]);
+    const byId = new Map();
+    for (const row of [...(jsonA.value || []), ...(jsonB.value || [])]) {
+      byId.set(row.kp_ScheduleID, row);
+    }
+    return [...byId.values()].map(toAppointment);
   }
 
   async listUnscheduled() {
