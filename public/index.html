@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FMcalendar</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" hidden>
+    <header class="toolbar">
+      <div class="toolbar-left">
+        <button id="btn-logout" class="icon-btn" title="Sign out">&#x21bb;&#xFE0E; Sign out</button>
+      </div>
+      <div class="toolbar-right">
+        <button id="btn-print" class="icon-btn" title="Print">&#128438;</button>
+        <button id="btn-refresh" class="icon-btn" title="Refresh">&#8635;</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="calendar-pane">
+        <div id="calendar"></div>
+      </section>
+
+      <aside class="sidebar">
+        <div id="mini-calendar"></div>
+
+        <div class="unscheduled-panel">
+          <h2>Unscheduled</h2>
+          <div id="unscheduled-list" class="unscheduled-list"></div>
+          <button id="btn-add" class="fab" title="Add appointment">+</button>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Edit / create appointment modal -->
+  <div id="modal-overlay" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <button id="btn-delete" type="button" class="btn-delete" hidden>Delete Event</button>
+        <div class="modal-id">ID: <span id="field-id">(new)</span></div>
+      </div>
+
+      <form id="appt-form">
+        <label class="full">
+          Resource
+          <select id="field-resource"></select>
+        </label>
+
+        <div class="row">
+          <label>
+            Start Date
+            <input type="date" id="field-start-date" />
+          </label>
+          <label>
+            End Date
+            <input type="date" id="field-end-date" />
+          </label>
+        </div>
+
+        <div class="row">
+          <label id="label-start-time">
+            Start Time
+            <input type="time" id="field-start-time" />
+          </label>
+          <label id="label-end-time">
+            End Time
+            <input type="time" id="field-end-time" />
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="field-untimed" />
+            No time yet
+          </label>
+        </div>
+
+        <label class="full">
+          Day Of Week
+          <input type="text" id="field-day-of-week" readonly tabindex="-1" />
+        </label>
+
+        <label class="full">
+          Event Description (shows on calendar)
+          <textarea id="field-description" rows="3"></textarea>
+        </label>
+
+        <label class="full">
+          Event Notes (does not appear on calendar)
+          <textarea id="field-notes" rows="2"></textarea>
+        </label>
+
+        <div class="row">
+          <label class="full">
+            Address
+            <input type="text" id="field-address" />
+          </label>
+        </div>
+        <div class="row three">
+          <label>
+            City
+            <input type="text" id="field-city" />
+          </label>
+          <label>
+            State
+            <input type="text" id="field-state" />
+          </label>
+          <label>
+            Zip
+            <input type="text" id="field-zip" />
+          </label>
+        </div>
+        <div class="row">
+          <label>
+            Phone
+            <input type="tel" id="field-phone" />
+          </label>
+          <div class="button-stack">
+            <button type="button" id="btn-client-info">Enter Client Info</button>
+            <button type="button" id="btn-map">Map</button>
+          </div>
+        </div>
+
+        <div id="linked-client-note" class="linked-client-note" hidden></div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-cancel">Cancel</button>
+          <button type="submit" id="btn-done">Done</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Client search modal -->
+  <div id="client-modal-overlay" class="modal-overlay" hidden>
+    <div class="modal modal-small">
+      <h2>Enter Client Info</h2>
+      <input type="text" id="client-search" placeholder="Search by name, pet, or phone..." autofocus />
+      <div id="client-results" class="client-results"></div>
+      <div class="modal-actions">
+        <button type="button" id="btn-client-cancel">Cancel</button>
+        <button type="button" id="btn-client-unlink">Remove Link</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="vendor/fullcalendar/01-core.global.min.js"></script>
+  <script src="vendor/fullcalendar/02-daygrid.global.min.js"></script>
+  <script src="vendor/fullcalendar/03-timegrid.global.min.js"></script>
+  <script src="vendor/fullcalendar/04-list.global.min.js"></script>
+  <script src="vendor/fullcalendar/05-interaction.global.min.js"></script>
+  <script src="app.js"></script>
+  <script src="modal.js"></script>
+</body>
+</html>

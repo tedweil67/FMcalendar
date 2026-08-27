@@ -1,0 +1,19 @@
+{
+  "name": "fmcalendar",
+  "version": "1.0.0",
+  "description": "Web scheduling calendar backed by a FileMaker Server database via OData",
+  "private": true,
+  "main": "server/app.js",
+  "scripts": {
+    "start": "node server/app.js",
+    "dev": "FM_MODE=mock node server/app.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0"
+  }
+}

@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: fmcalendar
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node server/app.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: FM_MODE
+        value: mock # switch to 'odata' once FileMaker OData is enabled and live creds are set below
+      - key: FM_BASE_URL
+        sync: false
+      - key: FM_DATABASE
+        sync: false
+      - key: FM_USERNAME
+        sync: false
+      - key: FM_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SHARED_USERNAME
+        sync: false
+      - key: SHARED_PASSWORD
+        sync: false
+      - key: NODE_ENV
+        value: production
