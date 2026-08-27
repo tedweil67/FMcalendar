@@ -27,14 +27,10 @@
 
       <aside class="sidebar">
         <div id="mini-calendar"></div>
-
-        <div class="unscheduled-panel">
-          <h2>Unscheduled</h2>
-          <div id="unscheduled-list" class="unscheduled-list"></div>
-          <button id="btn-add" class="fab" title="Add appointment">+</button>
-        </div>
       </aside>
     </main>
+
+    <button id="btn-add" class="fab" title="Add appointment">+</button>
   </div>
 
   <!-- Edit / create appointment modal -->
@@ -54,11 +50,11 @@
         <div class="row">
           <label>
             Start Date
-            <input type="date" id="field-start-date" />
+            <input type="date" id="field-start-date" required />
           </label>
           <label>
             End Date
-            <input type="date" id="field-end-date" />
+            <input type="date" id="field-end-date" required />
           </label>
         </div>
 

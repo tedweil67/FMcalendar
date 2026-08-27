@@ -5,9 +5,9 @@
  *
  * @typedef {Object} Appointment
  * @property {string} id            kp_ScheduleID
- * @property {string|null} startDate  Event_Start_Date, 'YYYY-MM-DD' or null (unscheduled)
+ * @property {string} startDate       Event_Start_Date, 'YYYY-MM-DD' - always required
  * @property {string|null} startTime  Event_Start_Time, 'HH:MM' or null
- * @property {string|null} endDate    Event_End_Date, 'YYYY-MM-DD' or null
+ * @property {string} endDate         Event_End_Date, 'YYYY-MM-DD' - always required
  * @property {string|null} endTime    Event_End_Time, 'HH:MM' or null
  * @property {boolean} untimed        All_Day_Event
  * @property {string} description     Event_Description
@@ -24,11 +24,6 @@
 class CalendarAdapter {
   /** @returns {Promise<Appointment[]>} dated appointments overlapping [startDate, endDate] */
   async listAppointments({ startDate, endDate }) {
-    throw new Error('not implemented');
-  }
-
-  /** @returns {Promise<Appointment[]>} appointments with no startDate at all */
-  async listUnscheduled() {
     throw new Error('not implemented');
   }
 

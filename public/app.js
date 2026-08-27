@@ -1,6 +1,6 @@
-// Boot logic, main + mini FullCalendar instances, unscheduled sidebar panel.
-// Modal logic (create/edit/client-link/map) lives in modal.js and is invoked
-// from here via the global FMCalModal namespace.
+// Boot logic and the main + mini FullCalendar instances. Modal logic
+// (create/edit/client-link/map) lives in modal.js and is invoked from here
+// via the global FMCalModal namespace.
 
 let mainCalendar = null;
 let miniCalendar = null;
@@ -54,40 +54,8 @@ async function loadResourceConfig() {
   resourceConfig = await res.json();
 }
 
-async function loadUnscheduled() {
-  let items;
-  try {
-    const res = await apiFetch('/api/appointments/unscheduled');
-    items = await res.json();
-  } catch (err) {
-    showError(`Couldn't load unscheduled appointments: ${err.message}`);
-    return;
-  }
-  const list = document.getElementById('unscheduled-list');
-  list.innerHTML = '';
-  if (!items.length) {
-    const empty = document.createElement('div');
-    empty.className = 'unscheduled-empty';
-    empty.textContent = 'Nothing unscheduled.';
-    list.appendChild(empty);
-    return;
-  }
-  for (const appt of items) {
-    const el = document.createElement('div');
-    el.className = 'unscheduled-item';
-    const bg = resourceConfig.colors[appt.resource] || '#ffffff';
-    const textColor = resourceConfig.textColors ? resourceConfig.textColors[appt.resource] : '#000';
-    el.style.background = bg;
-    el.style.color = textColor || '#000';
-    el.textContent = appt.description || '(no description)';
-    el.addEventListener('click', () => window.FMCalModal.openApptModal(appt.id));
-    list.appendChild(el);
-  }
-}
-
 function refreshAll() {
   if (mainCalendar) mainCalendar.refetchEvents();
-  loadUnscheduled();
 }
 
 function initMainCalendar() {
@@ -158,7 +126,11 @@ function wireToolbar() {
     window.location.href = 'login.html';
   });
   document.getElementById('btn-add').addEventListener('click', () => {
-    window.FMCalModal.openApptModal(null, {});
+    const today = mainCalendar ? mainCalendar.getDate() : new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    window.FMCalModal.openApptModal(null, { date: `${y}-${m}-${d}` });
   });
 }
 
@@ -170,6 +142,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   initMainCalendar();
   initMiniCalendar();
   wireToolbar();
-  await loadUnscheduled();
   document.getElementById('app').hidden = false;
 });

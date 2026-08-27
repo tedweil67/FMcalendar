@@ -5,9 +5,9 @@ OData API). Works as a normal web app in any browser and embeds cleanly in a Fil
 Web Viewer.
 
 - Create/edit/delete appointments, color-coded by department/resource
-- Multi-day events (separate start/end dates) plus start/end times
+- Multi-day events (separate start/end dates) plus start/end times - every appointment
+  requires both a start and end date to be saved
 - "Untimed" appointments (date known, time TBD) shown in a separate section per day
-- "Unscheduled" appointments (no date yet) in a sidebar bucket, assigned a date later
 - Appointments can link to a FileMaker customer record (pulling name/address/phone) or
   stand alone with manually-entered details
 - One-tap "Map" button to navigate to an appointment's address

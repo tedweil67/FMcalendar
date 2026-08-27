@@ -101,7 +101,7 @@
         $('field-end-date').value = prefill.date;
         $('field-day-of-week').value = dayOfWeekFor(prefill.date);
       }
-      setUntimedUI(!prefill.date ? true : !!prefill.allDay);
+      setUntimedUI(!!prefill.allDay);
     }
     $('modal-overlay').hidden = false;
   }
@@ -201,7 +201,7 @@
     container.innerHTML = '';
     if (!results.length) {
       const empty = document.createElement('div');
-      empty.className = 'unscheduled-empty';
+      empty.className = 'empty-message';
       empty.textContent = 'No matching clients.';
       container.appendChild(empty);
       return;

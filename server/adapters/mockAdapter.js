@@ -41,10 +41,9 @@ function fromAppointment(data) {
 }
 
 // Overlap test: appointment overlaps the visible range if its date span
-// intersects [startDate, endDate]. Appointments with no startDate are excluded
-// here (they live in the Unscheduled bucket, not the range view).
+// intersects [startDate, endDate]. Every appointment has a startDate now
+// (enforced at the route layer), so no null-date case to handle here.
 function overlaps(row, startDate, endDate) {
-  if (!row.Event_Start_Date) return false;
   const rowStart = row.Event_Start_Date;
   const rowEnd = row.Event_End_Date || row.Event_Start_Date;
   return rowStart <= endDate && rowEnd >= startDate;
@@ -53,10 +52,6 @@ function overlaps(row, startDate, endDate) {
 class MockAdapter extends CalendarAdapter {
   async listAppointments({ startDate, endDate }) {
     return appointments.filter((row) => overlaps(row, startDate, endDate)).map(toAppointment);
-  }
-
-  async listUnscheduled() {
-    return appointments.filter((row) => !row.Event_Start_Date).map(toAppointment);
   }
 
   async getAppointment(id) {

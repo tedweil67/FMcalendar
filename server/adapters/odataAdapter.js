@@ -160,12 +160,6 @@ class ODataAdapter extends CalendarAdapter {
     return [...byId.values()].map(toAppointment);
   }
 
-  async listUnscheduled() {
-    const qs = buildQuery({ $filter: 'Event_Start_Date eq null' });
-    const json = await odataFetch(`/${SCHEDULE}?${qs}`);
-    return (json.value || []).map(toAppointment);
-  }
-
   async getAppointment(id) {
     try {
       const row = await odataFetch(`/${SCHEDULE}(${keyPredicate('kp_ScheduleID', id)})`);
