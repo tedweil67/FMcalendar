@@ -210,17 +210,31 @@ class ODataAdapter extends CalendarAdapter {
 
   async hydrateClientForAppointment(intakeId) {
     if (!intakeId) return null;
-    const intake = await odataFetch(`/${INTAKE}(${keyPredicate('Intake ID', intakeId)})`).catch((err) => {
-      if (/404/.test(err.message)) return null;
-      throw err;
-    });
+    // Intake_System (occurrence name; its base table is actually a much
+    // larger ~200-field table covering the whole intake/case workflow) - a
+    // full-record fetch by key errored with "An internal data formatting
+    // error occurred" (8310), plausibly from one of its many other
+    // calculated/related fields, not anything we actually need. $select down
+    // to just the two fields this lookup uses, to sidestep the rest entirely.
+    const intakeSelect = buildQuery({ $select: 'Pets_Name,CS ID' });
+    const intake = await odataFetch(`/${INTAKE}(${keyPredicate('Intake ID', intakeId)})?${intakeSelect}`).catch(
+      (err) => {
+        if (/404/.test(err.message)) return null;
+        throw err;
+      }
+    );
     if (!intake) return null;
     const csId = intake['CS ID'];
     if (csId == null) return null;
-    const client = await odataFetch(`/${CLIENTS}(${keyPredicate('ClientID', csId)})`).catch((err) => {
-      if (/404/.test(err.message)) return null;
-      throw err;
+    const clientSelect = buildQuery({
+      $select: 'First Name,Last Name,PhoneNumber,Street Address,City,State,Zip,ClientID',
     });
+    const client = await odataFetch(`/${CLIENTS}(${keyPredicate('ClientID', csId)})?${clientSelect}`).catch(
+      (err) => {
+        if (/404/.test(err.message)) return null;
+        throw err;
+      }
+    );
     if (!client) return null;
     return {
       petsName: intake.Pets_Name || '',
