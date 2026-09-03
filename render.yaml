@@ -8,7 +8,8 @@ services:
     healthCheckPath: /healthz
     envVars:
       - key: FM_MODE
-        value: mock # switch to 'odata' once FileMaker OData is enabled and live creds are set below
+        sync: false # set to 'mock' or 'odata' in the Render dashboard - NOT here, so a blueprint
+        # re-sync (e.g. from any future render.yaml change) can never silently overwrite it
       - key: FM_BASE_URL
         sync: false
       - key: FM_DATABASE
