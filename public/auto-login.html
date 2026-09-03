@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FMcalendar - Signing in...</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="login-body">
+  <div class="login-wrap">
+    <div class="login-card" id="status-card">
+      <h1>FMcalendar</h1>
+      <p class="login-sub" id="status-text">Signing in...</p>
+      <div id="status-error" class="login-error" hidden></div>
+    </div>
+  </div>
+  <script>
+    // The Web Viewer's calculated URL carries the token in the fragment
+    // (#token=...), which browsers never send to the server - so it never
+    // appears in Render's access logs, unlike a normal query parameter would.
+    const hash = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const token = params.get('token');
+    const statusText = document.getElementById('status-text');
+    const statusError = document.getElementById('status-error');
+
+    // Scrub the token from the visible URL/history immediately.
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+
+    async function run() {
+      if (!token) {
+        statusText.textContent = 'No sign-in token provided.';
+        statusError.hidden = false;
+        statusError.textContent = 'This page must be opened with a #token=... link.';
+        return;
+      }
+      try {
+        const res = await fetch('/api/login-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Sign-in failed');
+        }
+        window.location.href = 'index.html';
+      } catch (err) {
+        statusText.textContent = 'Automatic sign-in failed.';
+        statusError.hidden = false;
+        statusError.textContent = err.message;
+      }
+    }
+
+    run();
+  </script>
+</body>
+</html>

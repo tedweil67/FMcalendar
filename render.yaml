@@ -23,5 +23,7 @@ services:
         sync: false
       - key: SHARED_PASSWORD
         sync: false
+      - key: WEBVIEWER_TOKEN
+        generateValue: true # copy this value from the Render dashboard into the FileMaker Web Viewer's URL, see docs/filemaker-setup.md
       - key: NODE_ENV
         value: production

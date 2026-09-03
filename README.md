@@ -42,8 +42,25 @@ and, once ready for live data, `FM_BASE_URL`/`FM_DATABASE`/`FM_USERNAME`/`FM_PAS
 
 ## Embedding in a FileMaker Web Viewer
 
-Point a Web Viewer object at the deployed Render URL. Sessions use a same-origin,
-`SameSite=Lax` cookie so sign-in persists across navigation inside the Web Viewer.
+Point a Web Viewer object at the deployed Render URL and staff will see the normal login
+screen. Sessions use a same-origin, `SameSite=Lax` cookie so sign-in persists across
+navigation inside the Web Viewer for the life of the session (12 hours).
+
+To skip the login screen entirely inside FileMaker, use the silent auto-login link instead
+of the plain URL. On Render, `WEBVIEWER_TOKEN` is auto-generated as a secret separate from
+the human-facing `SHARED_USERNAME`/`SHARED_PASSWORD` — copy its value from the Render
+dashboard's Environment tab, then set the Web Viewer's URL to a calculation like:
+
+```
+"https://your-app.onrender.com/auto-login.html#token=" & "<paste the WEBVIEWER_TOKEN value here>"
+```
+
+The token travels in the URL fragment (after `#`), which browsers never send to the server,
+so it never shows up in Render's access logs the way a normal query parameter would. The
+page immediately scrubs it from the visible URL/history and redirects to the calendar once
+signed in. Treat this token like a password — anyone with it has full access to the
+calendar — and rotate it on Render (regenerate the env var) if the FileMaker file it's
+embedded in is ever shared outside your organization.
 
 ## Project structure
 
