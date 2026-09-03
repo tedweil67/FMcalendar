@@ -18,9 +18,25 @@
     // The Web Viewer's calculated URL carries the token in the fragment
     // (#token=...), which browsers never send to the server - so it never
     // appears in Render's access logs, unlike a normal query parameter would.
+    //
+    // Deliberately NOT using URLSearchParams here: it applies
+    // application/x-www-form-urlencoded rules, which decode '+' as a space.
+    // That's correct for a query string but wrong for a URL fragment, and a
+    // random generated token (base64-ish) is exactly the kind of value
+    // likely to contain a literal '+', '/', or trailing '=' - URLSearchParams
+    // would silently corrupt it, making sign-in fail every single time.
+    // Parse it by hand and only decode genuine %XX escapes instead.
     const hash = window.location.hash.replace(/^#/, '');
-    const params = new URLSearchParams(hash);
-    const token = params.get('token');
+    let token = null;
+    for (const pair of hash.split('&')) {
+      const eq = pair.indexOf('=');
+      const key = eq === -1 ? pair : pair.slice(0, eq);
+      if (key === 'token') {
+        const rawValue = eq === -1 ? '' : pair.slice(eq + 1);
+        token = decodeURIComponent(rawValue);
+        break;
+      }
+    }
     const statusText = document.getElementById('status-text');
     const statusError = document.getElementById('status-error');
 
