@@ -134,6 +134,29 @@ function wireToolbar() {
   });
 }
 
+// FileMaker hands off a new appointment for an existing client by opening
+// this app with ?intakeId=<Intake ID> in the URL (see README "Scheduling
+// from a FileMaker client record"). This does one fast, targeted lookup
+// (not a table search) to pull that client's current contact info and opens
+// the create modal prefilled and linked to it.
+async function openFromIntakeIdInUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const intakeId = params.get('intakeId');
+  if (!intakeId) return;
+
+  // Scrub it from the URL/history immediately, regardless of outcome below,
+  // so refreshing the page doesn't reopen the same prefilled modal.
+  window.history.replaceState(null, '', window.location.pathname);
+
+  try {
+    const res = await apiFetch(`/api/clients/by-intake/${encodeURIComponent(intakeId)}`);
+    const client = await res.json();
+    window.FMCalModal.openApptModal(null, { intakeId, ...client });
+  } catch (err) {
+    showError(`Couldn't load client info for Intake ID ${intakeId}: ${err.message}`);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const ok = await checkSession();
   if (!ok) return;
@@ -143,4 +166,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   initMiniCalendar();
   wireToolbar();
   document.getElementById('app').hidden = false;
+  await openFromIntakeIdInUrl();
 });

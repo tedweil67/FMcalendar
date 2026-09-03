@@ -77,34 +77,6 @@ class MockAdapter extends CalendarAdapter {
     if (idx !== -1) appointments.splice(idx, 1);
   }
 
-  async findClients(query) {
-    const q = (query || '').trim().toLowerCase();
-    const clientById = new Map(clients.map((c) => [c.ClientID, c]));
-    return intakeSystem
-      .map((intake) => {
-        const client = clientById.get(intake['CS ID']);
-        if (!client) return null;
-        return {
-          intakeId: intake['Intake ID'],
-          petsName: intake.Pets_Name || '',
-          clientId: client.ClientID,
-          firstName: client['First Name'] || '',
-          lastName: client['Last Name'] || '',
-          phone: client.PhoneNumber || '',
-          address: client['Street Address'] || '',
-          city: client.City || '',
-          state: client.State || '',
-          zip: client.Zip || '',
-        };
-      })
-      .filter(Boolean)
-      .filter((c) => {
-        if (!q) return true;
-        const haystack = `${c.firstName} ${c.lastName} ${c.petsName} ${c.phone}`.toLowerCase();
-        return haystack.includes(q);
-      });
-  }
-
   async hydrateClientForAppointment(intakeId) {
     if (!intakeId) return null;
     const intake = intakeSystem.find((i) => i['Intake ID'] === intakeId);

@@ -1,12 +1,19 @@
-// Create/edit appointment modal + client-link search modal.
+// Create/edit appointment modal.
 // Exposes window.FMCalModal = { init(resourceConfig, onSaved), openApptModal(id, prefill) }
+//
+// Client linking: rather than searching for a client from inside this app
+// (which meant scanning the live Clients/Intake_System tables and was slow
+// enough to time out), a FileMaker script hands this app an Intake ID via
+// the URL when staff click "schedule appointment" from a client record - see
+// README "Scheduling from a FileMaker client record". app.js resolves that
+// into a prefill object (via GET /api/clients/by-intake/:id, a single fast
+// key lookup) and passes it to openApptModal's `prefill` argument.
 
 (function () {
   let resourceConfig = null;
   let onSaved = () => {};
   let currentId = null;
   let currentIntakeId = null;
-  let clientSearchTimer = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -44,7 +51,7 @@
     $('btn-delete').hidden = true;
     currentId = null;
     currentIntakeId = null;
-    $('linked-client-note').hidden = true;
+    showLinkedClientNote(null);
     setUntimedUI(false);
   }
 
@@ -71,16 +78,27 @@
   }
 
   function showLinkedClientNote(client) {
+    const row = $('linked-client-row');
     const note = $('linked-client-note');
     if (client) {
-      note.hidden = false;
+      row.hidden = false;
       note.textContent = `Linked to ${client.firstName} ${client.lastName}${
         client.petsName ? ` (${client.petsName})` : ''
       }`;
     } else {
-      note.hidden = true;
+      row.hidden = true;
       note.textContent = '';
     }
+  }
+
+  function applyClientPrefill(client) {
+    currentIntakeId = client.intakeId || null;
+    if (client.address != null) $('field-address').value = client.address;
+    if (client.city != null) $('field-city').value = client.city;
+    if (client.state != null) $('field-state').value = client.state;
+    if (client.zip != null) $('field-zip').value = client.zip;
+    if (client.phone != null) $('field-phone').value = client.phone;
+    showLinkedClientNote(client);
   }
 
   async function openApptModal(id, prefill) {
@@ -102,6 +120,8 @@
         $('field-day-of-week').value = dayOfWeekFor(prefill.date);
       }
       setUntimedUI(!!prefill.allDay);
+      if (prefill.intakeId) applyClientPrefill(prefill);
+      if (prefill.description) $('field-description').value = prefill.description;
     }
     $('modal-overlay').hidden = false;
   }
@@ -174,88 +194,9 @@
     window.open(url, '_blank', 'noopener');
   }
 
-  // ---- Client search modal ----
-
-  const MIN_SEARCH_LENGTH = 2;
-
-  function openClientModal() {
-    $('client-modal-overlay').hidden = false;
-    $('client-search').value = '';
-    $('client-search').focus();
-    showClientPrompt(`Type at least ${MIN_SEARCH_LENGTH} characters to search.`);
-  }
-
-  function closeClientModal() {
-    $('client-modal-overlay').hidden = true;
-  }
-
-  function showClientPrompt(text) {
-    const container = $('client-results');
-    container.innerHTML = '';
-    const prompt = document.createElement('div');
-    prompt.className = 'empty-message';
-    prompt.textContent = text;
-    container.appendChild(prompt);
-  }
-
-  async function searchClients(query) {
-    // Fetching and scanning the Clients/Intake_System tables is expensive on
-    // a live FileMaker Server with no search term to narrow anything down -
-    // don't do it until there's something worth searching for.
-    if (query.trim().length < MIN_SEARCH_LENGTH) {
-      showClientPrompt(`Type at least ${MIN_SEARCH_LENGTH} characters to search.`);
-      return;
-    }
-    let results;
-    try {
-      const res = await apiFetch(`/api/clients/search?q=${encodeURIComponent(query)}`);
-      results = await res.json();
-    } catch (err) {
-      showError(`Couldn't search clients: ${err.message}`);
-      return;
-    }
-    const container = $('client-results');
-    container.innerHTML = '';
-    if (!results.length) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-message';
-      empty.textContent = 'No matching clients.';
-      container.appendChild(empty);
-      return;
-    }
-    for (const client of results) {
-      const row = document.createElement('div');
-      row.className = 'client-result';
-      const name = document.createElement('div');
-      name.className = 'name';
-      name.textContent = `${client.firstName} ${client.lastName}${client.petsName ? ` — ${client.petsName}` : ''}`;
-      const details = document.createElement('div');
-      details.className = 'details';
-      details.textContent = [client.phone, client.address, client.city, client.state, client.zip]
-        .filter(Boolean)
-        .join(', ');
-      row.appendChild(name);
-      row.appendChild(details);
-      row.addEventListener('click', () => selectClient(client));
-      container.appendChild(row);
-    }
-  }
-
-  function selectClient(client) {
-    currentIntakeId = client.intakeId;
-    $('field-address').value = client.address || '';
-    $('field-city').value = client.city || '';
-    $('field-state').value = client.state || '';
-    $('field-zip').value = client.zip || '';
-    $('field-phone').value = client.phone || '';
-    showLinkedClientNote({ firstName: client.firstName, lastName: client.lastName, petsName: client.petsName });
-    closeClientModal();
-  }
-
-  function unlinkClient() {
+  function handleRemoveLink() {
     currentIntakeId = null;
     showLinkedClientNote(null);
-    closeClientModal();
   }
 
   function wireEvents() {
@@ -263,26 +204,15 @@
     $('btn-delete').addEventListener('click', handleDelete);
     $('btn-cancel').addEventListener('click', closeApptModal);
     $('btn-map').addEventListener('click', handleMap);
+    $('btn-remove-link').addEventListener('click', handleRemoveLink);
     $('field-untimed').addEventListener('change', (e) => setUntimedUI(e.target.checked));
     $('field-start-date').addEventListener('change', (e) => {
       $('field-day-of-week').value = dayOfWeekFor(e.target.value);
       if (!$('field-end-date').value) $('field-end-date').value = e.target.value;
     });
 
-    $('btn-client-info').addEventListener('click', openClientModal);
-    $('btn-client-cancel').addEventListener('click', closeClientModal);
-    $('btn-client-unlink').addEventListener('click', unlinkClient);
-    $('client-search').addEventListener('input', (e) => {
-      clearTimeout(clientSearchTimer);
-      const value = e.target.value;
-      clientSearchTimer = setTimeout(() => searchClients(value), 200);
-    });
-
     $('modal-overlay').addEventListener('click', (e) => {
       if (e.target.id === 'modal-overlay') closeApptModal();
-    });
-    $('client-modal-overlay').addEventListener('click', (e) => {
-      if (e.target.id === 'client-modal-overlay') closeClientModal();
     });
   }
 

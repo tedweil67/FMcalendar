@@ -48,17 +48,9 @@ class CalendarAdapter {
   }
 
   /**
-   * Searches Intake_System + Clients for the "Enter Client Info" picker.
-   * @returns {Promise<Array<{intakeId: string, petsName: string, clientId: string,
-   *   firstName: string, lastName: string, phone: string, address: string,
-   *   city: string, state: string, zip: string}>>}
-   */
-  async findClients(query) {
-    throw new Error('not implemented');
-  }
-
-  /**
    * Two-hop lookup: Schedule.kf_Intake_ID -> Intake_System."Intake ID" -> Clients.ClientID.
+   * Used both to hydrate an existing linked appointment and to prefill a new
+   * one when FileMaker hands the web app an Intake ID directly (see README).
    * @returns {Promise<{petsName: string, firstName: string, lastName: string,
    *   phone: string, address: string, city: string, state: string, zip: string}|null>}
    */

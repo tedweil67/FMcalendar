@@ -204,52 +204,6 @@ class ODataAdapter extends CalendarAdapter {
     await odataFetch(`/${SCHEDULE}(${keyPredicate('kp_ScheduleID', id)})`, { method: 'DELETE' });
   }
 
-  async findClients(query) {
-    // OData $filter expressions can't reliably reference property names that
-    // contain spaces (First Name, Last Name, Intake ID, CS ID all do), and this
-    // is unverified against a live FileMaker Server. Rather than guess at
-    // FileMaker's exact escaping rules for that, fetch both tables (capped by
-    // $top so this stays cheap) and match/join in JS instead - it costs two
-    // requests instead of one but avoids a class of bug we can't test for.
-    // Callers are expected to gate this behind a real search term (see
-    // modal.js) - even $top-capped, this is still an unfiltered fetch of
-    // whichever 200 rows FileMaker returns first, so it's only worth paying
-    // for once there's an actual query to run client-side against the page.
-    const q = (query || '').trim().toLowerCase();
-    const [clientsJson, intakeJson] = await Promise.all([
-      odataFetch(`/${CLIENTS}?${buildQuery({ $top: '200' })}`),
-      odataFetch(`/${INTAKE}?${buildQuery({ $top: '200' })}`),
-    ]);
-    const clientById = new Map((clientsJson.value || []).map((c) => [String(c.ClientID), c]));
-
-    const results = [];
-    for (const intake of intakeJson.value || []) {
-      const csId = intake['CS ID'];
-      if (csId == null) continue;
-      const client = clientById.get(String(csId));
-      if (!client) continue;
-      const entry = {
-        intakeId: String(intake['Intake ID']),
-        petsName: intake.Pets_Name || '',
-        clientId: String(client.ClientID),
-        firstName: client['First Name'] || '',
-        lastName: client['Last Name'] || '',
-        phone: client.PhoneNumber || '',
-        address: client['Street Address'] || '',
-        city: client.City || '',
-        state: client.State || '',
-        zip: client.Zip || '',
-      };
-      if (!q) {
-        results.push(entry);
-        continue;
-      }
-      const haystack = `${entry.firstName} ${entry.lastName} ${entry.petsName} ${entry.phone}`.toLowerCase();
-      if (haystack.includes(q)) results.push(entry);
-    }
-    return results;
-  }
-
   async hydrateClientForAppointment(intakeId) {
     if (!intakeId) return null;
     const intake = await odataFetch(`/${INTAKE}(${keyPredicate('Intake ID', intakeId)})`).catch((err) => {

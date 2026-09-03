@@ -24,9 +24,12 @@
     const statusText = document.getElementById('status-text');
     const statusError = document.getElementById('status-error');
 
-    // Scrub the token from the visible URL/history immediately.
+    // Preserve any query string (e.g. ?intakeId=... from the "schedule
+    // appointment for this client" flow - see README) so it carries through
+    // to index.html, before scrubbing the token out of the visible URL/history.
+    const forwardSearch = window.location.search;
     if (window.history && window.history.replaceState) {
-      window.history.replaceState(null, '', window.location.pathname);
+      window.history.replaceState(null, '', window.location.pathname + forwardSearch);
     }
 
     async function run() {
@@ -46,7 +49,7 @@
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || 'Sign-in failed');
         }
-        window.location.href = 'index.html';
+        window.location.href = `index.html${forwardSearch}`;
       } catch (err) {
         statusText.textContent = 'Automatic sign-in failed.';
         statusError.hidden = false;

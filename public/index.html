@@ -114,31 +114,20 @@
             <input type="tel" id="field-phone" />
           </label>
           <div class="button-stack">
-            <button type="button" id="btn-client-info">Enter Client Info</button>
             <button type="button" id="btn-map">Map</button>
           </div>
         </div>
 
-        <div id="linked-client-note" class="linked-client-note" hidden></div>
+        <div id="linked-client-row" class="linked-client-row" hidden>
+          <div id="linked-client-note" class="linked-client-note"></div>
+          <button type="button" id="btn-remove-link">Remove Link</button>
+        </div>
 
         <div class="modal-actions">
           <button type="button" id="btn-cancel">Cancel</button>
           <button type="submit" id="btn-done">Done</button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- Client search modal -->
-  <div id="client-modal-overlay" class="modal-overlay" hidden>
-    <div class="modal modal-small">
-      <h2>Enter Client Info</h2>
-      <input type="text" id="client-search" placeholder="Search by name, pet, or phone..." autofocus />
-      <div id="client-results" class="client-results"></div>
-      <div class="modal-actions">
-        <button type="button" id="btn-client-cancel">Cancel</button>
-        <button type="button" id="btn-client-unlink">Remove Link</button>
-      </div>
     </div>
   </div>
 
