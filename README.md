@@ -9,7 +9,8 @@ Web Viewer.
   requires both a start and end date to be saved
 - "Untimed" appointments (date known, time TBD) shown in a separate section per day
 - Appointments can link to a FileMaker customer record (pulling name/address/phone) or
-  stand alone with manually-entered details
+  stand alone with manually-entered details - see "Scheduling from a FileMaker client
+  record" below for the intended way to create a linked appointment
 - One-tap "Map" button to navigate to an appointment's address
 
 ## Running locally (demo data, no FileMaker needed)
@@ -61,6 +62,34 @@ page immediately scrubs it from the visible URL/history and redirects to the cal
 signed in. Treat this token like a password — anyone with it has full access to the
 calendar — and rotate it on Render (regenerate the env var) if the FileMaker file it's
 embedded in is ever shared outside your organization.
+
+## Scheduling from a FileMaker client record
+
+There's no in-app client search — an earlier version tried that, but bulk-scanning the
+live Clients table from the browser was too slow. Instead, staff schedule a new appointment
+for an existing client the way they already do: a button/script on the client record in
+FileMaker that opens (or redirects) the Web Viewer to this app with the client's Intake ID
+in the URL:
+
+```
+https://your-app.onrender.com/index.html?intakeId=<Intake ID>
+```
+
+The app looks up that Intake ID (one fast, targeted lookup — not a search) and opens a new
+appointment already linked to that client, with their address and phone prefilled. Staff
+still pick the date/time/resource and save it themselves.
+
+If the Web Viewer isn't already signed in (a fresh session, not the same one that's been
+sitting on the calendar view), combine this with the auto-login link above — both the token
+(in the fragment) and `intakeId` (in the query string) can be on the same URL:
+
+```
+"https://your-app.onrender.com/auto-login.html?intakeId=" & YourTable::IntakeID & "#token=<the WEBVIEWER_TOKEN value>"
+```
+
+`auto-login.html` forwards the `intakeId` query string through automatically once it's
+signed in, so this works the same either way — script it as an **Open URL** or **Set Web
+Viewer** step wherever your Client layout's "schedule appointment" button already lives.
 
 ## Project structure
 
