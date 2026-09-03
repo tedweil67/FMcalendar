@@ -176,19 +176,36 @@
 
   // ---- Client search modal ----
 
+  const MIN_SEARCH_LENGTH = 2;
+
   function openClientModal() {
     $('client-modal-overlay').hidden = false;
     $('client-search').value = '';
-    $('client-results').innerHTML = '';
     $('client-search').focus();
-    searchClients('');
+    showClientPrompt(`Type at least ${MIN_SEARCH_LENGTH} characters to search.`);
   }
 
   function closeClientModal() {
     $('client-modal-overlay').hidden = true;
   }
 
+  function showClientPrompt(text) {
+    const container = $('client-results');
+    container.innerHTML = '';
+    const prompt = document.createElement('div');
+    prompt.className = 'empty-message';
+    prompt.textContent = text;
+    container.appendChild(prompt);
+  }
+
   async function searchClients(query) {
+    // Fetching and scanning the Clients/Intake_System tables is expensive on
+    // a live FileMaker Server with no search term to narrow anything down -
+    // don't do it until there's something worth searching for.
+    if (query.trim().length < MIN_SEARCH_LENGTH) {
+      showClientPrompt(`Type at least ${MIN_SEARCH_LENGTH} characters to search.`);
+      return;
+    }
     let results;
     try {
       const res = await apiFetch(`/api/clients/search?q=${encodeURIComponent(query)}`);

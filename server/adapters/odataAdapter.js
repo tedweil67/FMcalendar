@@ -211,10 +211,14 @@ class ODataAdapter extends CalendarAdapter {
     // FileMaker's exact escaping rules for that, fetch both tables (capped by
     // $top so this stays cheap) and match/join in JS instead - it costs two
     // requests instead of one but avoids a class of bug we can't test for.
+    // Callers are expected to gate this behind a real search term (see
+    // modal.js) - even $top-capped, this is still an unfiltered fetch of
+    // whichever 200 rows FileMaker returns first, so it's only worth paying
+    // for once there's an actual query to run client-side against the page.
     const q = (query || '').trim().toLowerCase();
     const [clientsJson, intakeJson] = await Promise.all([
-      odataFetch(`/${CLIENTS}?${buildQuery({ $top: '500' })}`),
-      odataFetch(`/${INTAKE}?${buildQuery({ $top: '500' })}`),
+      odataFetch(`/${CLIENTS}?${buildQuery({ $top: '200' })}`),
+      odataFetch(`/${INTAKE}?${buildQuery({ $top: '200' })}`),
     ]);
     const clientById = new Map((clientsJson.value || []).map((c) => [String(c.ClientID), c]));
 
