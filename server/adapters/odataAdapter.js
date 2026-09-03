@@ -25,20 +25,24 @@ function authHeader() {
   return `Basic ${token}`;
 }
 
-// OData string literal for use inside $filter (single quotes inside the value
-// are doubled per OData string-literal escaping rules).
-function stringLiteral(value) {
-  return `'${String(value).replace(/'/g, "''")}'`;
-}
-
 // Single-record addressing. FileMaker Server's OData implementation matches
 // the shorthand EntitySet('value') form against its own internal numeric
 // record ID, not against whichever field your schema calls its primary key -
 // using that shorthand against a text-keyed table throws "incompatible data
 // types" (error 8309). The explicit named-key form EntitySet(Field='value')
 // forces the match onto the field we actually mean.
+//
+// This builds a URL PATH segment, not a query string, so nothing here goes
+// through buildQuery's encoding. A key value containing a space (confirmed
+// live: an Intake ID like "IID 1318") left a literal space in the request
+// URL and FileMaker rejected it outright ("An internal data formatting
+// error occurred"). Apply the OData literal-quote escaping first, then
+// percent-encode just that escaped content - leaving the surrounding '...'
+// delimiters as literal characters, since those are what tells FileMaker's
+// parser it's looking at a string literal at all.
 function keyPredicate(keyField, value) {
-  return `${encodeURIComponent(keyField)}=${stringLiteral(value)}`;
+  const escaped = String(value).replace(/'/g, "''");
+  return `${encodeURIComponent(keyField)}='${encodeURIComponent(escaped)}'`;
 }
 
 // OData Edm.Date literal for use inside $filter - unquoted 'YYYY-MM-DD', per
