@@ -5,9 +5,13 @@ const FM_DATABASE = process.env.FM_DATABASE; // e.g. HospiceDB
 const FM_USERNAME = process.env.FM_USERNAME;
 const FM_PASSWORD = process.env.FM_PASSWORD;
 
-const SCHEDULE = 'Schedule';
-const INTAKE = 'Intake_System';
-const CLIENTS = 'Clients';
+// FileMaker's OData API exposes table *occurrences* from the file's
+// relationship graph, not base table names - Schedule and Intake_System
+// happen to have matching occurrence names, but the Clients base table's
+// occurrence on the graph is actually named "Client Records".
+const SCHEDULE = encodeURIComponent('Schedule');
+const INTAKE = encodeURIComponent('Intake_System');
+const CLIENTS = encodeURIComponent('Client Records');
 
 function baseUrl() {
   if (!FM_BASE_URL || !FM_DATABASE) {
