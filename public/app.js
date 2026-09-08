@@ -118,9 +118,23 @@ function initMiniCalendar() {
   miniCalendar.render();
 }
 
+let untimedExpanded = true;
+
+function updateToggleUntimedButton() {
+  const btn = document.getElementById('btn-toggle-untimed');
+  btn.textContent = untimedExpanded ? '▾ Untimed' : '▸ Untimed';
+  btn.title = untimedExpanded ? 'Collapse the Untimed section' : 'Expand the Untimed section';
+}
+
 function wireToolbar() {
   document.getElementById('btn-print').addEventListener('click', () => window.print());
   document.getElementById('btn-refresh').addEventListener('click', () => refreshAll());
+  document.getElementById('btn-toggle-untimed').addEventListener('click', () => {
+    untimedExpanded = !untimedExpanded;
+    mainCalendar.setOption('allDaySlot', untimedExpanded);
+    updateToggleUntimedButton();
+  });
+  updateToggleUntimedButton();
   document.getElementById('btn-logout').addEventListener('click', async () => {
     await apiFetch('/api/logout', { method: 'POST' });
     window.location.href = 'login.html';
