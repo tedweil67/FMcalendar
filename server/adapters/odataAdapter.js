@@ -210,31 +210,24 @@ class ODataAdapter extends CalendarAdapter {
 
   async hydrateClientForAppointment(intakeId) {
     if (!intakeId) return null;
-    // Intake_System (occurrence name; its base table is actually a much
-    // larger ~200-field table covering the whole intake/case workflow) - a
-    // full-record fetch by key errored with "An internal data formatting
-    // error occurred" (8310), plausibly from one of its many other
-    // calculated/related fields, not anything we actually need. $select down
-    // to just the two fields this lookup uses, to sidestep the rest entirely.
-    const intakeSelect = buildQuery({ $select: 'Pets_Name,CS ID' });
-    const intake = await odataFetch(`/${INTAKE}(${keyPredicate('Intake ID', intakeId)})?${intakeSelect}`).catch(
-      (err) => {
-        if (/404/.test(err.message)) return null;
-        throw err;
-      }
-    );
+    // Tried $select to trim these two tables down to only the fields we
+    // need (Intake_System's base table has ~200 fields), but FileMaker's
+    // $select parser appears to tokenize on whitespace, not just commas -
+    // "CS ID" (a field name we can't change) came back as a syntax error
+    // pointing at the stray "ID" token. Every field this lookup needs on
+    // the Clients side has a space in its name too, so $select is a dead
+    // end here entirely - back to full-record fetches.
+    const intake = await odataFetch(`/${INTAKE}(${keyPredicate('Intake ID', intakeId)})`).catch((err) => {
+      if (/404/.test(err.message)) return null;
+      throw err;
+    });
     if (!intake) return null;
     const csId = intake['CS ID'];
     if (csId == null) return null;
-    const clientSelect = buildQuery({
-      $select: 'First Name,Last Name,PhoneNumber,Street Address,City,State,Zip,ClientID',
+    const client = await odataFetch(`/${CLIENTS}(${keyPredicate('ClientID', csId)})`).catch((err) => {
+      if (/404/.test(err.message)) return null;
+      throw err;
     });
-    const client = await odataFetch(`/${CLIENTS}(${keyPredicate('ClientID', csId)})?${clientSelect}`).catch(
-      (err) => {
-        if (/404/.test(err.message)) return null;
-        throw err;
-      }
-    );
     if (!client) return null;
     return {
       petsName: intake.Pets_Name || '',
