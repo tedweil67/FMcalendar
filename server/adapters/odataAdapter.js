@@ -210,35 +210,35 @@ class ODataAdapter extends CalendarAdapter {
 
   async hydrateClientForAppointment(intakeId) {
     if (!intakeId) return null;
-    // Tried $select to trim these two tables down to only the fields we
-    // need (Intake_System's base table has ~200 fields), but FileMaker's
-    // $select parser appears to tokenize on whitespace, not just commas -
-    // "CS ID" (a field name we can't change) came back as a syntax error
-    // pointing at the stray "ID" token. Every field this lookup needs on
-    // the Clients side has a space in its name too, so $select is a dead
-    // end here entirely - back to full-record fetches.
-    const intake = await odataFetch(`/${INTAKE}(${keyPredicate('Intake ID', intakeId)})`).catch((err) => {
-      if (/404/.test(err.message)) return null;
-      throw err;
-    });
-    if (!intake) return null;
-    const csId = intake['CS ID'];
-    if (csId == null) return null;
-    const client = await odataFetch(`/${CLIENTS}(${keyPredicate('ClientID', csId)})`).catch((err) => {
-      if (/404/.test(err.message)) return null;
-      throw err;
-    });
-    if (!client) return null;
-    return {
-      petsName: intake.Pets_Name || '',
-      firstName: client['First Name'] || '',
-      lastName: client['Last Name'] || '',
-      phone: client.PhoneNumber || '',
-      address: client['Street Address'] || '',
-      city: client.City || '',
-      state: client.State || '',
-      zip: client.Zip || '',
-    };
+    // Confirmed live: every single-record fetch from Intake_System (its
+    // base table is a ~200-field table covering the whole intake/case
+    // workflow, with repeating fields and several container/stream fields)
+    // fails with "An internal data formatting error occurred" (8310) -
+    // reproduced against multiple different real records, with and without
+    // $select, so it's not fixable from the query side. This is best-effort:
+    // an appointment someone linked in the past (or that FileMaker linked
+    // via kf_Intake_ID, even though new links from FileMaker now pass
+    // details directly instead - see README) should still open and be
+    // editable even though we can't hydrate its client info anymore.
+    try {
+      const intake = await odataFetch(`/${INTAKE}(${keyPredicate('Intake ID', intakeId)})`);
+      const csId = intake['CS ID'];
+      if (csId == null) return null;
+      const client = await odataFetch(`/${CLIENTS}(${keyPredicate('ClientID', csId)})`);
+      return {
+        petsName: intake.Pets_Name || '',
+        firstName: client['First Name'] || '',
+        lastName: client['Last Name'] || '',
+        phone: client.PhoneNumber || '',
+        address: client['Street Address'] || '',
+        city: client.City || '',
+        state: client.State || '',
+        zip: client.Zip || '',
+      };
+    } catch (err) {
+      console.error(`hydrateClientForAppointment(${intakeId}) failed, continuing without client info:`, err.message);
+      return null;
+    }
   }
 }
 

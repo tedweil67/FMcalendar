@@ -6,7 +6,6 @@ const session = require('express-session');
 const requireAuth = require('./middleware/requireAuth');
 const authRoutes = require('./routes/auth');
 const appointmentsRoutes = require('./routes/appointments');
-const clientsRoutes = require('./routes/clients');
 const configRoutes = require('./routes/config');
 const adapter = require('./adapters');
 
@@ -52,7 +51,6 @@ app.get('/healthz', (req, res) => {
 
 app.use('/api', authRoutes);
 app.use('/api/appointments', requireAuth, appointmentsRoutes);
-app.use('/api/clients', requireAuth, clientsRoutes);
 app.use('/api/config', requireAuth, configRoutes);
 
 app.use(express.static(path.join(__dirname, '..', 'public')));

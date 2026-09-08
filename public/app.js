@@ -134,27 +134,32 @@ function wireToolbar() {
   });
 }
 
-// FileMaker hands off a new appointment for an existing client by opening
-// this app with ?intakeId=<Intake ID> in the URL (see README "Scheduling
-// from a FileMaker client record"). This does one fast, targeted lookup
-// (not a table search) to pull that client's current contact info and opens
-// the create modal prefilled and linked to it.
-async function openFromIntakeIdInUrl() {
+// FileMaker hands off a new appointment by opening this app with the
+// details already gathered as URL params (see README "Scheduling from a
+// FileMaker client record"): description, address, city, state, zip, phone,
+// and optionally intakeId to link it. FileMaker has fast, direct, native
+// access to its own data (and may pull these from more than one source), so
+// there's no backend lookup here at all - this just reads the URL and opens
+// the create modal prefilled.
+function openFromUrlPrefill() {
   const params = new URLSearchParams(window.location.search);
-  const intakeId = params.get('intakeId');
-  if (!intakeId) return;
+  const fields = ['description', 'address', 'city', 'state', 'zip', 'phone', 'intakeId'];
+  const prefill = {};
+  let hasAny = false;
+  for (const field of fields) {
+    const value = params.get(field);
+    if (value != null) {
+      prefill[field] = value;
+      hasAny = true;
+    }
+  }
+  if (!hasAny) return;
 
-  // Scrub it from the URL/history immediately, regardless of outcome below,
-  // so refreshing the page doesn't reopen the same prefilled modal.
+  // Scrub these from the URL/history immediately so refreshing the page
+  // doesn't reopen the same prefilled modal.
   window.history.replaceState(null, '', window.location.pathname);
 
-  try {
-    const res = await apiFetch(`/api/clients/by-intake/${encodeURIComponent(intakeId)}`);
-    const client = await res.json();
-    window.FMCalModal.openApptModal(null, { intakeId, ...client });
-  } catch (err) {
-    showError(`Couldn't load client info for Intake ID ${intakeId}: ${err.message}`);
-  }
+  window.FMCalModal.openApptModal(null, prefill);
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -166,5 +171,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   initMiniCalendar();
   wireToolbar();
   document.getElementById('app').hidden = false;
-  await openFromIntakeIdInUrl();
+  openFromUrlPrefill();
 });

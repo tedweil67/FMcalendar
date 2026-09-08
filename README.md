@@ -65,38 +65,66 @@ embedded in is ever shared outside your organization.
 
 ## Scheduling from a FileMaker client record
 
-There's no in-app client search — an earlier version tried that, but bulk-scanning the
-live Clients table from the browser was too slow. Instead, staff schedule a new appointment
-for an existing client the way they already do: a button/script on the client record in
-FileMaker that opens (or redirects) the Web Viewer to this app with the client's Intake ID
-in the URL:
+There's no in-app client search or lookup — two earlier approaches were tried (a bulk
+search, then a targeted lookup-by-Intake-ID) and both ran into live problems: bulk-scanning
+the Clients table from the browser was too slow, and the Intake table's base table (a large,
+~200-field table covering the whole intake/case workflow, with repeating fields and several
+container fields) errors on every single-record OData fetch regardless of query shape.
+
+Instead, staff schedule a new appointment for an existing client the way they already do: a
+FileMaker script gathers the details itself — it has fast, native access to its own data,
+possibly pulling from more than one table/source — and hands them straight to the web app as
+URL parameters. No backend lookup is involved at all. Save the gathered values into script
+variables and build the URL from those, e.g.:
 
 ```
-https://your-app.onrender.com/index.html?intakeId=<Intake ID>
+Set Variable [ $description ; Value: ... ]
+Set Variable [ $address ; Value: ... ]
+Set Variable [ $city ; Value: ... ]
+Set Variable [ $state ; Value: ... ]
+Set Variable [ $zip ; Value: ... ]
+Set Variable [ $phone ; Value: ... ]
+
+Open URL [
+  "https://your-app.onrender.com/index.html"
+  & "?description=" & GetAsURLEncoded ( $description )
+  & "&address=" & GetAsURLEncoded ( $address )
+  & "&city=" & GetAsURLEncoded ( $city )
+  & "&state=" & GetAsURLEncoded ( $state )
+  & "&zip=" & GetAsURLEncoded ( $zip )
+  & "&phone=" & GetAsURLEncoded ( $phone )
+]
 ```
 
-The app looks up that Intake ID (one fast, targeted lookup — not a search) and opens a new
-appointment already linked to that client, with their address and phone prefilled. Staff
-still pick the date/time/resource and save it themselves.
+Every parameter is optional and independent — pass whichever ones you have. The app opens a
+new appointment with `description` filling Event Description and the rest filling the
+Address/City/State/Zip/Phone fields; staff still pick the date/time/resource and save it
+themselves. To also link the new appointment's `kf_Intake_ID` (for your own records — the
+app won't try to look anything up from it), add `&intakeId=` & GetAsURLEncoded ( $intakeId ).
+
+Only wrap values in `GetAsURLEncoded()` here if your script's `Open URL` (or `Set Web
+Viewer`) step does **not** already encode the URL itself — encoding twice corrupts the
+values (confirmed live: it turned a value containing a space into garbled text). If you're
+not sure, test with a value that has a space in it and check whether it arrives correctly.
 
 If the Web Viewer isn't already signed in (a fresh session, not the same one that's been
 sitting on the calendar view), combine this with the auto-login link above — both the token
-(in the fragment) and `intakeId` (in the query string) can be on the same URL:
+(in the fragment) and these fields (in the query string) can be on the same URL:
 
 ```
-"https://your-app.onrender.com/auto-login.html?intakeId=" & YourTable::IntakeID & "#token=<the WEBVIEWER_TOKEN value>"
+"https://your-app.onrender.com/auto-login.html?description=" & GetAsURLEncoded ( $description ) & "&address=" & GetAsURLEncoded ( $address ) & "#token=<the WEBVIEWER_TOKEN value>"
 ```
 
-`auto-login.html` forwards the `intakeId` query string through automatically once it's
-signed in, so this works the same either way — script it as an **Open URL** or **Set Web
-Viewer** step wherever your Client layout's "schedule appointment" button already lives.
+`auto-login.html` forwards the whole query string through automatically once it's signed in,
+so this works the same either way — script it as an **Open URL** or **Set Web Viewer** step
+wherever your Client layout's "schedule appointment" button already lives.
 
 ## Project structure
 
 ```
 server/
   app.js                 Express entry point, session/auth, static file serving
-  routes/                auth, appointments, clients, config REST endpoints
+  routes/                auth, appointments, config REST endpoints
   adapters/               CalendarAdapter interface + mockAdapter + odataAdapter
 config/resources.js       Single source of truth for the resource -> color mapping
 public/                   Frontend: FullCalendar-based UI (no build step)

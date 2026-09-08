@@ -1,13 +1,16 @@
 // Create/edit appointment modal.
 // Exposes window.FMCalModal = { init(resourceConfig, onSaved), openApptModal(id, prefill) }
 //
-// Client linking: rather than searching for a client from inside this app
-// (which meant scanning the live Clients/Intake_System tables and was slow
-// enough to time out), a FileMaker script hands this app an Intake ID via
-// the URL when staff click "schedule appointment" from a client record - see
-// README "Scheduling from a FileMaker client record". app.js resolves that
-// into a prefill object (via GET /api/clients/by-intake/:id, a single fast
-// key lookup) and passes it to openApptModal's `prefill` argument.
+// Client linking: rather than searching for or looking up a client from
+// inside this app (which meant querying the live Clients/Intake_System
+// tables - too slow via a bulk search, and Intake_System turned out to
+// error on every single-record fetch regardless), a FileMaker script
+// gathers the appointment details itself (it already has fast, native
+// access, possibly from more than one source) and hands them to this app
+// directly via URL params when staff click "schedule appointment" from a
+// client record - see README "Scheduling from a FileMaker client record".
+// app.js reads those straight off the URL into a prefill object and passes
+// it to openApptModal's `prefill` argument - no backend lookup involved.
 
 (function () {
   let resourceConfig = null;
@@ -80,25 +83,34 @@
   function showLinkedClientNote(client) {
     const row = $('linked-client-row');
     const note = $('linked-client-note');
-    if (client) {
-      row.hidden = false;
+    if (!client || (!client.intakeId && !client.firstName && !client.lastName)) {
+      row.hidden = true;
+      note.textContent = '';
+      return;
+    }
+    row.hidden = false;
+    // Full name/pet details (from hydrateClientForAppointment, used for an
+    // already-linked appointment opened via its id) vs. just an Intake ID
+    // (from a FileMaker-initiated hand-off - see applyClientPrefill/README,
+    // which passes address/phone/description directly rather than an id to
+    // look up, so there's no name to show here).
+    if (client.firstName || client.lastName) {
       note.textContent = `Linked to ${client.firstName} ${client.lastName}${
         client.petsName ? ` (${client.petsName})` : ''
       }`;
     } else {
-      row.hidden = true;
-      note.textContent = '';
+      note.textContent = `Linked to Intake ID: ${client.intakeId}`;
     }
   }
 
-  function applyClientPrefill(client) {
-    currentIntakeId = client.intakeId || null;
-    if (client.address != null) $('field-address').value = client.address;
-    if (client.city != null) $('field-city').value = client.city;
-    if (client.state != null) $('field-state').value = client.state;
-    if (client.zip != null) $('field-zip').value = client.zip;
-    if (client.phone != null) $('field-phone').value = client.phone;
-    showLinkedClientNote(client);
+  function applyClientPrefill(prefill) {
+    currentIntakeId = prefill.intakeId || null;
+    if (prefill.address != null) $('field-address').value = prefill.address;
+    if (prefill.city != null) $('field-city').value = prefill.city;
+    if (prefill.state != null) $('field-state').value = prefill.state;
+    if (prefill.zip != null) $('field-zip').value = prefill.zip;
+    if (prefill.phone != null) $('field-phone').value = prefill.phone;
+    showLinkedClientNote(currentIntakeId ? { intakeId: currentIntakeId } : null);
   }
 
   async function openApptModal(id, prefill) {
@@ -120,7 +132,9 @@
         $('field-day-of-week').value = dayOfWeekFor(prefill.date);
       }
       setUntimedUI(!!prefill.allDay);
-      if (prefill.intakeId) applyClientPrefill(prefill);
+      if (prefill.intakeId || prefill.address || prefill.city || prefill.state || prefill.zip || prefill.phone) {
+        applyClientPrefill(prefill);
+      }
       if (prefill.description) $('field-description').value = prefill.description;
     }
     $('modal-overlay').hidden = false;
