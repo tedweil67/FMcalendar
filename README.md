@@ -102,10 +102,16 @@ Address/City/State/Zip/Phone fields; staff still pick the date/time/resource and
 themselves. To also link the new appointment's `kf_Intake_ID` (for your own records — the
 app won't try to look anything up from it), add `&intakeId=` & GetAsURLEncoded ( $intakeId ).
 
-Only wrap values in `GetAsURLEncoded()` here if your script's `Open URL` (or `Set Web
-Viewer`) step does **not** already encode the URL itself — encoding twice corrupts the
-values (confirmed live: it turned a value containing a space into garbled text). If you're
-not sure, test with a value that has a space in it and check whether it arrives correctly.
+Only wrap values in `GetAsURLEncoded()` here if something else isn't *also* encoding the
+URL — encoding twice corrupts the values (confirmed live: it turned a value containing a
+space into garbled text, and the app came up entirely blank when the double-encoded URL
+also had a literal, un-encoded space slip through). The Web Viewer object itself has its own
+**"Automatically encode URL"** setting (in its configuration/inspector, separate from
+whatever the `Open URL`/`Set Web Viewer` script step does) — if that's turned on, drop
+`GetAsURLEncoded()` from the calculation entirely and pass the raw values, since the Web
+Viewer encodes them for you. If it's off, keep `GetAsURLEncoded()` around each value as
+shown above. Either way, test with a value that has a space in it and confirm it arrives
+correctly (no `%20` visible in the saved appointment) before relying on this for real data.
 
 If the Web Viewer isn't already signed in (a fresh session, not the same one that's been
 sitting on the calendar view), combine this with the auto-login link above — both the token
