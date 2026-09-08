@@ -122,7 +122,12 @@ let untimedExpanded = true;
 
 function updateToggleUntimedButton() {
   const btn = document.getElementById('btn-toggle-untimed');
-  btn.textContent = untimedExpanded ? '▾ Untimed' : '▸ Untimed';
+  btn.innerHTML = '';
+  const arrow = document.createElement('span');
+  arrow.className = 'untimed-arrow';
+  arrow.textContent = untimedExpanded ? '▾' : '▸';
+  btn.appendChild(arrow);
+  btn.appendChild(document.createTextNode('Untimed'));
   btn.title = untimedExpanded ? 'Collapse the Untimed section' : 'Expand the Untimed section';
 }
 

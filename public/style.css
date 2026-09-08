@@ -128,6 +128,20 @@ button {
   background: #eef4fb;
 }
 
+.icon-btn-svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.untimed-arrow {
+  font-size: 200%;
+  line-height: 1;
+  vertical-align: middle;
+  margin-right: 2px;
+  display: inline-block;
+}
+
 .error-banner {
   background: #fdecea;
   color: var(--danger);
