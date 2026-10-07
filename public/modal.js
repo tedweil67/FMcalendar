@@ -228,7 +228,14 @@
       );
       return;
     }
-    window.FileMaker.PerformScript(GO_TO_INTAKE_SCRIPT, currentIntakeId);
+    // Plain PerformScript queues the script behind any FileMaker script that's
+    // already running or paused (e.g. the one that opened this calendar), so
+    // it may never visibly run. Option '5' (Suspend and Resume) runs it now.
+    if (typeof window.FileMaker.PerformScriptWithOption === 'function') {
+      window.FileMaker.PerformScriptWithOption(GO_TO_INTAKE_SCRIPT, currentIntakeId, '5');
+    } else {
+      window.FileMaker.PerformScript(GO_TO_INTAKE_SCRIPT, currentIntakeId);
+    }
   }
 
   function handleRemoveLink() {

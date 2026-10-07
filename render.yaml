@@ -3,7 +3,7 @@ services:
     name: fmcalendar
     runtime: node
     plan: starter
-    buildCommand: npm install
+    buildCommand: npm ci # installs exactly what package-lock.json pins, so patched versions there are what deploys
     startCommand: node server/app.js
     healthCheckPath: /healthz
     envVars:
