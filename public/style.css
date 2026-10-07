@@ -371,6 +371,7 @@ button {
   padding: 8px 10px;
 }
 
+#btn-go-to-intake,
 #btn-remove-link {
   padding: 8px 12px;
   border-radius: 6px;
@@ -384,6 +385,14 @@ button {
 
 #btn-remove-link:hover {
   background: #fdecea;
+}
+
+#btn-go-to-intake {
+  color: var(--accent-dark);
+}
+
+#btn-go-to-intake:hover {
+  background: #eef4fb;
 }
 
 .modal-actions {

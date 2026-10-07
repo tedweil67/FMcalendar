@@ -125,6 +125,22 @@ sitting on the calendar view), combine this with the auto-login link above — b
 so this works the same either way — script it as an **Open URL** or **Set Web Viewer** step
 wherever your Client layout's "schedule appointment" button already lives.
 
+## Jumping back to the intake record
+
+When an appointment is linked to an intake (`kf_Intake_ID` is set), its pop-up shows a
+**Go to Intake** button. Clicking it runs a FileMaker script named `Go to Intake` (the
+`GO_TO_INTAKE_SCRIPT` constant at the top of `public/modal.js`) with the Intake ID as the
+script parameter. On the FileMaker side:
+
+1. In the Web Viewer's setup, turn on **Allow interaction with web viewer content** (FileMaker
+   19+). Without it, FileMaker doesn't give the page its `FileMaker.PerformScript` hook and
+   the button shows an error banner instead.
+2. Create a script with exactly that name that navigates using `Get ( ScriptParameter )`,
+   e.g. go to the Intake layout and find the record whose Intake ID matches it.
+
+The button only does anything inside the FileMaker Web Viewer. In a regular browser it
+shows an error banner.
+
 ## Project structure
 
 ```

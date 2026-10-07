@@ -13,6 +13,11 @@
 // it to openApptModal's `prefill` argument - no backend lookup involved.
 
 (function () {
+  // FileMaker script run by "Go to Intake", with the appointment's
+  // kf_Intake_ID as its parameter - see README "Jumping back to the intake
+  // record". Must match the script's name in the FileMaker file exactly.
+  const GO_TO_INTAKE_SCRIPT = 'Go to Intake';
+
   let resourceConfig = null;
   let onSaved = () => {};
   let currentId = null;
@@ -89,6 +94,8 @@
       return;
     }
     row.hidden = false;
+    // A linked name alone (no Intake ID) has nothing to navigate to.
+    $('btn-go-to-intake').hidden = !currentIntakeId;
     // Full name/pet details (from hydrateClientForAppointment, used for an
     // already-linked appointment opened via its id) vs. just an Intake ID
     // (from a FileMaker-initiated hand-off - see applyClientPrefill/README,
@@ -208,6 +215,18 @@
     window.open(url, '_blank', 'noopener');
   }
 
+  // window.FileMaker is injected into the page only when it's running inside
+  // a FileMaker Web Viewer with "Allow interaction with web viewer content"
+  // turned on (FileMaker 19+); in a regular browser there's nothing to call.
+  function handleGoToIntake() {
+    if (!currentIntakeId) return;
+    if (!window.FileMaker || typeof window.FileMaker.PerformScript !== 'function') {
+      showError('Go to Intake only works inside the FileMaker Web Viewer.');
+      return;
+    }
+    window.FileMaker.PerformScript(GO_TO_INTAKE_SCRIPT, currentIntakeId);
+  }
+
   function handleRemoveLink() {
     currentIntakeId = null;
     showLinkedClientNote(null);
@@ -218,6 +237,7 @@
     $('btn-delete').addEventListener('click', handleDelete);
     $('btn-cancel').addEventListener('click', closeApptModal);
     $('btn-map').addEventListener('click', handleMap);
+    $('btn-go-to-intake').addEventListener('click', handleGoToIntake);
     $('btn-remove-link').addEventListener('click', handleRemoveLink);
     $('field-untimed').addEventListener('change', (e) => setUntimedUI(e.target.checked));
     $('field-start-date').addEventListener('change', (e) => {
