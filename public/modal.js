@@ -16,7 +16,7 @@
   // FileMaker script run by "Go to Intake", with the appointment's
   // kf_Intake_ID as its parameter - see README "Jumping back to the intake
   // record". Must match the script's name in the FileMaker file exactly.
-  const GO_TO_INTAKE_SCRIPT = 'Go to Intake';
+  const GO_TO_INTAKE_SCRIPT = 'go to intake';
 
   let resourceConfig = null;
   let onSaved = () => {};
@@ -221,7 +221,11 @@
   function handleGoToIntake() {
     if (!currentIntakeId) return;
     if (!window.FileMaker || typeof window.FileMaker.PerformScript !== 'function') {
-      showError('Go to Intake only works inside the FileMaker Web Viewer.');
+      // alert, not showError - the error banner sits behind the modal overlay.
+      window.alert(
+        'Go to Intake can\'t reach FileMaker. In the Web Viewer setup, turn on ' +
+          '"Allow interaction with web viewer content", then reload the calendar.'
+      );
       return;
     }
     window.FileMaker.PerformScript(GO_TO_INTAKE_SCRIPT, currentIntakeId);
