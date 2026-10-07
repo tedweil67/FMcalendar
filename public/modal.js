@@ -86,6 +86,7 @@
   }
 
   function showLinkedClientNote(client) {
+    setIntakeNavStatus('');
     const row = $('linked-client-row');
     const note = $('linked-client-note');
     if (!client || (!client.intakeId && !client.firstName && !client.lastName)) {
@@ -215,27 +216,42 @@
     window.open(url, '_blank', 'noopener');
   }
 
+  // Shown inline rather than via alert/showError: FileMaker's Web Viewer may
+  // not display JavaScript alerts, and the error banner sits behind the modal.
+  function setIntakeNavStatus(message, isError) {
+    const el = $('intake-nav-status');
+    el.textContent = message || '';
+    el.classList.toggle('is-error', !!isError);
+    el.hidden = !message;
+  }
+
   // window.FileMaker is injected into the page only when it's running inside
-  // a FileMaker Web Viewer with "Allow interaction with web viewer content"
-  // turned on (FileMaker 19+); in a regular browser there's nothing to call.
+  // a FileMaker Web Viewer with "Allow JavaScript to perform FileMaker
+  // scripts" turned on (FileMaker 19+); in a regular browser it's absent.
   function handleGoToIntake() {
     if (!currentIntakeId) return;
     if (!window.FileMaker || typeof window.FileMaker.PerformScript !== 'function') {
-      // alert, not showError - the error banner sits behind the modal overlay.
-      window.alert(
-        'Go to Intake can\'t reach FileMaker. In the Web Viewer setup, turn on ' +
-          '"Allow interaction with web viewer content", then reload the calendar.'
+      setIntakeNavStatus(
+        'Can\'t reach FileMaker. In the Web Viewer setup, turn on "Allow JavaScript ' +
+          'to perform FileMaker scripts", then reload the calendar.',
+        true
       );
       return;
     }
-    // Plain PerformScript queues the script behind any FileMaker script that's
-    // already running or paused (e.g. the one that opened this calendar), so
-    // it may never visibly run. Option '5' (Suspend and Resume) runs it now.
-    if (typeof window.FileMaker.PerformScriptWithOption === 'function') {
-      window.FileMaker.PerformScriptWithOption(GO_TO_INTAKE_SCRIPT, currentIntakeId, '5');
-    } else {
-      window.FileMaker.PerformScript(GO_TO_INTAKE_SCRIPT, currentIntakeId);
+    try {
+      // Plain PerformScript queues the script behind any FileMaker script
+      // that's already running or paused (e.g. the one that opened this
+      // calendar). Option '5' (Suspend and Resume) runs it now.
+      if (typeof window.FileMaker.PerformScriptWithOption === 'function') {
+        window.FileMaker.PerformScriptWithOption(GO_TO_INTAKE_SCRIPT, currentIntakeId, '5');
+      } else {
+        window.FileMaker.PerformScript(GO_TO_INTAKE_SCRIPT, currentIntakeId);
+      }
+    } catch (err) {
+      setIntakeNavStatus(`FileMaker rejected the script call: ${err.message}`, true);
+      return;
     }
+    setIntakeNavStatus(`Asked FileMaker to run "${GO_TO_INTAKE_SCRIPT}" for ${currentIntakeId}.`, false);
   }
 
   function handleRemoveLink() {

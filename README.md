@@ -132,14 +132,17 @@ When an appointment is linked to an intake (`kf_Intake_ID` is set), its pop-up s
 `GO_TO_INTAKE_SCRIPT` constant at the top of `public/modal.js`) with the Intake ID as the
 script parameter. On the FileMaker side:
 
-1. In the Web Viewer's setup, turn on **Allow interaction with web viewer content** (FileMaker
-   19+). Without it, FileMaker doesn't give the page its `FileMaker.PerformScript` hook and
-   the button shows an alert instead.
+1. In the Web Viewer's setup, turn on **Allow JavaScript to perform FileMaker scripts**
+   (FileMaker 19+) - a separate checkbox from "Allow interaction with web viewer content",
+   which only makes the page clickable. Without it, FileMaker doesn't give the page its
+   `FileMaker.PerformScript` hook, and the pop-up says it can't reach FileMaker.
 2. Create a script with exactly that name that navigates using `Get ( ScriptParameter )`,
    e.g. go to the Intake layout and find the record whose Intake ID matches it.
 
 The button only does anything inside the FileMaker Web Viewer. In a regular browser it
-shows an alert.
+shows the same "can't reach FileMaker" message. After a successful call it shows "Asked
+FileMaker to run ..." - if that appears but nothing happens, the problem is on the FileMaker
+side (script name, or the script's own steps).
 
 ## Project structure
 

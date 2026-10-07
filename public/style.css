@@ -387,6 +387,16 @@ button {
   background: #fdecea;
 }
 
+.intake-nav-status {
+  margin: -4px 0 10px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.intake-nav-status.is-error {
+  color: var(--danger);
+}
+
 #btn-go-to-intake {
   color: var(--accent-dark);
 }
