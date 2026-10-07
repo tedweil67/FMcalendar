@@ -128,7 +128,7 @@ wherever your Client layout's "schedule appointment" button already lives.
 ## Jumping back to the intake record
 
 When an appointment is linked to an intake (`kf_Intake_ID` is set), its pop-up shows a
-**Go to Intake** button. Clicking it runs a FileMaker script named `go to intake` (the
+**Go to Intake** button. Clicking it runs a FileMaker script named `Go to Intake` (the
 `GO_TO_INTAKE_SCRIPT` constant at the top of `public/modal.js`) with the Intake ID as the
 script parameter. On the FileMaker side:
 

@@ -16,7 +16,7 @@
   // FileMaker script run by "Go to Intake", with the appointment's
   // kf_Intake_ID as its parameter - see README "Jumping back to the intake
   // record". Must match the script's name in the FileMaker file exactly.
-  const GO_TO_INTAKE_SCRIPT = 'go to intake';
+  const GO_TO_INTAKE_SCRIPT = 'Go to Intake';
 
   let resourceConfig = null;
   let onSaved = () => {};
